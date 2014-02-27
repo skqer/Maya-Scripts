@@ -1,0 +1,13 @@
+int $idx = particleShape2.collisionGeometryIndex;
+
+string $geoC[];
+string $shape[];
+
+if( $idx != -1 )
+{
+
+string $geoC[] = `listConnections particleShape2.collisionGeometry[$idx]`;
+string $shape[] = `listConnections ( $geoC[0] + “.localGeometry” )`;
+print( $shape[0] + “\n”);
+if ($shape[0] == “killcube”) particleShape2.lifespanPP = 0;
+}
