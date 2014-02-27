@@ -1,0 +1,27 @@
+import maya.cmds as cmds
+import math
+
+# written ny Heribert Raab heribertraab@gmail.com
+# create outliner window with show only effect related item’s
+
+#setup filter with nodetypes
+filterDyn = cmds.itemFilter(byType=(‘fluidEmitter’,'pointEmitter’,'rigidBody’,'nRigid’,'fluidShape’,'nParticle’,'nucleus’,'particle’,'nCloth’,'rigidConstraint’))
+
+#delete allready open effects outlines
+renUI = ‘EffectsOutliner’
+  if cmds.window(renUI, exists = True):
+    cmds.deleteUI(renUI)
+    
+def dynEditor(*args):
+  cmds.DynamicRelationshipEditor()
+
+cmds.window(‘EffectsOutliner’,title=’EffectsOutliner’)
+cmds.frameLayout( labelVisible=False,)
+panel = cmds.outlinerPanel()
+
+outliner = cmds.outlinerPanel(panel, query=True,outlinerEditor=True)
+cmds.outlinerEditor( outliner, edit=True, mainListConnection=’worldList’, selectionConnection=’modelList’, filter=filterDyn , showShapes=True, showAttributes=False, showConnected=False, showAnimCurvesOnly=False, autoExpand=True, showDagOnly=True, ignoreDagHierarchy=True, expandConnections=False, showNamespace=True, showCompounds=True, showNumericAttrsOnly=False, highlightActive=True, autoSelectNewObjects=False, doNotSelectNewObjects=False, transmitFilters=False, showSetMembers=True, setFilter=’defaultSetFilter’ )
+
+cmds.columnLayout( adjustableColumn=True )
+cmds.button( label=’DynamicRelationshipEditor’, command=dynEditor)
+cmds.showWindow()
