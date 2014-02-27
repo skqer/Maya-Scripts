@@ -1,0 +1,80 @@
+// written ny Heribert Raab heribertraab@gmail.com
+// the tool create outliner with contain just cameras
+// clicking on each camera switches through camera on your active viewport
+// playblast botton will playblast all selected camera with aktiv viewport and load them into fcheck or rv
+
+
+global proc playB(string $player)
+{
+string $select[] = `ls -sl`;
+
+// setup playblast dir
+//string $path = "/tmp/test/";
+string $frames2[] ;
+string $fl[] = `renderSettings -firstImageName -fullPathTemp`;
+string $f2[] = `renderSettings -firstImageName`;
+string $path = substituteAllString($fl[0], $f2[0], "");
+int $min = `playbackOptions -q -minTime`;
+int $max = `playbackOptions -q -maxTime`;
+int $fr = $max - $min;
+
+int $f;
+string $all;
+string $play;
+string $scene = `file -q -sn -shn`;
+string $scname = substituteAllString($scene, ".", "_");
+
+for ($f=0;$f <$fr;$f++)
+{
+// playblast selected Cameras
+$numInts = size($select);
+$ridNum = $numInts +1;
+int $i=0;
+string $seq[];
+
+for ($i=0;$i < $numInts; $i++)
+{
+lookThru ($select[$i]);
+$frames2[$i] = $path+$scname+"_"+$select[$i];
+//print ($frames2[$i]+"."+$f+"\n");
+playblast -st $f -et $f -forceOverwrite -format image -fp 4 -compression "jpg" -f($frames2[$i]) -viewer 0 -offScreen -percent 100 -quality 70;
+}
+}
+$all = stringArrayToString($frames2, ".* ");
+
+//image player command
+$play = ($player+" "+$all+"*");
+
+if ($player =="mplay") $play= ($player+" -V 2 2 -g "+$all+"* &");
+if ($player =="mplay2") $play= ("mplay -V 4 1 -g "+$all+"* &");
+if ($player =="rv") $play_rv = ($player+" -tile "+$all+"* &");
+if ($player =="fcheck") {$play = ($player+" -S "+$all+"* &");}
+
+print $play;print "\n";
+system( $play );
+}
+
+global proc look(){lookThru `ls -sl`;}
+
+
+string $filterP = `itemFilter -byType camera `;
+
+window cameras;
+frameLayout -labelVisible false ;
+string $panel = `outlinerPanel`;
+columnLayout -adjustableColumn true;
+    button -label "Playblast selected Cams with RV" -command "playB rv";
+    button -label "Playblast selected Cams with Fcheck" -command "playB fcheck";
+    button -label "Playblast selected Cams with mPlay quad" -command "playB mplay";
+button -label "Playblast selected Cams with mPlay row" -command "playB mplay2";
+
+string $outliner = `outlinerPanel -query -outlinerEditor $panel`;
+outlinerEditor -edit
+    -mainListConnection "worldList"
+    -selectionConnection "modelList"
+-f $filterP
+-selectCommand look
+    -showSetMembers true
+    -setFilter defaultSetFilter
+    $outliner;
+showWindow;
