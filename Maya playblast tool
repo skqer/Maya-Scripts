@@ -24,7 +24,7 @@ string $play;
 string $scene = `file -q -sn -shn`;
 string $scname = substituteAllString($scene, ".", "_");
 
-for ($f=0;$f <$fr;$f++)
+for ($f=$min;$f <$max;$f++)
 {
 // playblast selected Cameras
 $numInts = size($select);
