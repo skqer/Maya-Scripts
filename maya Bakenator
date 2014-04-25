@@ -1,0 +1,190 @@
+import maya.cmds as cmds
+import maya.mel as mel
+
+
+#particle instancer baking tool
+
+#ESC Tool
+gMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
+cmds.progressBar( gMainProgressBar,
+                                edit=True,
+                                beginProgress=True,
+                                isInterruptable=True,
+                                status='"I AM BAKING...',
+                                maxValue=5000)
+                                
+minF = cmds.playbackOptions(q=True,minTime=True)
+maxF = cmds.playbackOptions(q=True,maxTime=True)
+#cmds.playbackOptions( by=2 )
+
+rangeF = maxF-minF
+	
+def bake(*args):
+	#cmds.progressBar(progressControl2, edit=True, endProgress=True)	
+	#get seletions                                                      
+	Psel = cmds.ls( selection=True )
+	
+	count = cmds.getAttr(Psel[0]+'.count')
+	print count
+	
+	inst = cmds.listConnections( Psel[0]+'.instanceData', d=True, s=True )
+	print inst[0]
+	
+	baked = cmds.spaceLocator(name="instancerbake")
+	print baked
+	
+	minF = cmds.playbackOptions(q=True,minTime=True)
+	maxF = cmds.playbackOptions(q=True,maxTime=True)
+	rangeF = maxF-minF
+	curFrame = minF -1
+	
+	#get jump frame
+	framejump = cmds.textFieldGrp( 'jump',query=True, text=True)	
+	framejump = int(framejump)
+	
+	#collect bake Geo setup
+	DoSimplify = cmds.checkBoxGrp( 'simple',query=True,value1=True)
+	simpleGeo = []
+	
+	#----------------------------------------------------------------------------------------------------------
+	#walking through frames
+	#----------------------------------------------------------------------------------------------------------
+	for f in range(rangeF):
+		#look for ESC
+		if cmds.progressBar(gMainProgressBar, query=True, isCancelled=True ) :
+			break
+		#----------------	
+		#setup jump frames
+		#---------------
+		curFrame +=framejump
+		print "baking frame:  "+str(curFrame)
+	
+		cmds.currentTime( curFrame, edit=True )
+		#update progressBAR
+		cmds.progressBar(gMainProgressBar, edit=True, step=1)
+		
+		#check particles	
+		count = cmds.getAttr(Psel[0]+'.count')
+		print "particlecount:  " + str(count)
+		
+		#start vbake if particles there
+		#-------------------------------
+		if count > 0:
+			#look for ESC
+			if cmds.progressBar(gMainProgressBar, query=True, isCancelled=True ) :
+				break
+			#----------------------------------------------------------------------------------------------------------
+			#bake current frame
+			#----------------------------------------------------------------------------------------------------------
+			for i in range(count):
+				#look for ESC
+				if cmds.progressBar(gMainProgressBar, query=True, isCancelled=True ) :
+					break
+			    
+			    #get particle Attr
+				meshIDAttr = cmds.textFieldGrp( 'meshid',query=True, text=True)
+				sizePPAttr = cmds.textFieldGrp( 'size',query=True, text=True)
+				rotationPPAttr = cmds.textFieldGrp( 'rotation',query=True, text=True)
+				# get attr values
+				positionPP = cmds.nParticle(Psel[0],attribute='worldPosition',query=True,particleId=i)
+				sizePP = cmds.nParticle(Psel[0],attribute=sizePPAttr,query=True,particleId=i)
+				rotationPP = cmds.nParticle(Psel[0],attribute=rotationPPAttr,query=True,particleId=i)
+				#get meshes
+				listmesh = cmds.listConnections(inst[0]+'.inputHierarchy')
+				checkAttr = cmds.objExists(Psel[0]+"."+meshIDAttr)
+				meshID = [0]
+				instName = ''
+				
+				# paricle ID and mupltiple meshes
+				#--------------------------------
+				if checkAttr == True:
+					try:
+						meshID = cmds.nParticle(Psel[0],attribute=meshIDAttr,query=True,particleId=i)
+						meshID = [int(z) for z in meshID]
+					except RuntimeError:
+						print " Emty ID Attr"	
+						print "using meshID 0 instead"
+						meshID = [0]
+				mesh = meshID[0]
+				try:
+					instName = listmesh[mesh]+"_"+str(i)
+					checkGeo = cmds.objExists(instName)
+					#-----------------------------------------------------------------------
+					#duplictae
+					#-----------------------------------------------------------------------
+					if checkGeo== False:
+						instGeo = cmds.duplicate(listmesh[mesh],name=instName )
+						cmds.setAttr(instGeo[0]+".visibility", 1)
+						cmds.parent( instGeo[0], baked  )
+					
+				except IndexError :
+					print "No Mesh for particleID found:" + str(i)	
+					print "using meshID 0 instead"
+					instName = listmesh[0]+"_"+str(i)
+					checkGeo = cmds.objExists(instName)
+					#duplictae
+					if checkGeo== False:
+						instGeo = cmds.duplicate(listmesh[0],name=instName )
+						cmds.setAttr(instGeo[0]+".visibility", 1)
+						cmds.parent( instGeo[0], baked  )						
+				#collect simple Geo
+				#-----------------------------------------------------------------------
+				if DoSimplify == True:
+					simpleGeo.insert(0,instName)
+
+				
+				#-----------------------------------------------------------------------
+				#set keyframes
+				#-----------------------------------------------------------------------
+				
+				cmds.setKeyframe(instName, v=positionPP[0], at='translateX', time=curFrame)
+				cmds.setKeyframe(instName, v=positionPP[1], at='translateY', time=curFrame)
+				cmds.setKeyframe(instName, v=positionPP[2], at='translateZ', time=curFrame)
+				
+				cmds.setKeyframe(instName, v=sizePP[0], at='scaleX', time=curFrame)
+				cmds.setKeyframe(instName, v=sizePP[1], at='scaleY', time=curFrame)
+				cmds.setKeyframe(instName, v=sizePP[2], at='scaleZ', time=curFrame)
+				
+				cmds.setKeyframe(instName, v=rotationPP[0], at='rotateX', t=curFrame)
+				cmds.setKeyframe(instName, v=rotationPP[1], at='rotateY', t=curFrame)
+				cmds.setKeyframe(instName, v=rotationPP[2], at='rotateZ', t=curFrame)
+				if cmds.progressBar(gMainProgressBar, query=True, isCancelled=True ) :
+					break
+	#update progressBAR
+	cmds.progressBar(gMainProgressBar, edit=True, endProgress=True)
+	
+	for s in range(len(simpleGeo)):
+		cmds.simplify( simpleGeo[s] )	
+		#update progressBAR
+		cmds.progressBar(gMainProgressBar, edit=True, step=1)
+
+#update progressBAR
+cmds.progressBar(gMainProgressBar, edit=True, endProgress=True)	
+
+
+
+#----------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------
+#window creation
+#----------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------
+
+window = cmds.window('Bakenator3')
+cmds.columnLayout()
+
+cmds.image( image='/corp/projects/randc1/work/fx/scripts/baking.jpg' )
+
+gMainProgressBar = cmds.progressBar(maxValue=rangeF,isInterruptable=True,width=550)
+
+cmds.textFieldGrp( 'meshid',label='MeshID int Attr:', text="meshID",editable=True)
+cmds.textFieldGrp( 'rotation',label='rotation vector Attr:', text="rotationPP",editable=True)
+cmds.textFieldGrp( 'size',label='size vector Attr:', text="sizePP",editable=True)
+cmds.textFieldGrp( 'jump',label='keyframe every (frame):', text=1,editable=True)
+cmds.checkBoxGrp( 'simple', numberOfCheckBoxes=1, label='', labelArray3=['Simplify Animation Curve', '', ''] )
+cmds.button( label='BAKE Instance NOW !!', command=bake  )
+
+
+cmds.showWindow( window )
+
+#update progressBAR
+cmds.progressBar(gMainProgressBar, edit=True, endProgress=True)	
