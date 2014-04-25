@@ -1,0 +1,20 @@
+import maya.cmds as cmds
+import maya.mel as mel
+
+gMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
+cmds.progressBar( gMainProgressBar,
+                                edit=True,
+                                beginProgress=True,
+                                isInterruptable=True,
+                                status='"I AM CLEANING...',
+                                maxValue=5000)
+list = cmds.select(hierarchy=True)
+Psel = cmds.ls( selection=True )
+
+for i in range(len(Psel)):
+	cmds.simplify( Psel[i] )	
+	#update progressBAR
+	cmds.progressBar(gMainProgressBar, edit=True, step=1)
+	
+#update progressBAR
+cmds.progressBar(gMainProgressBar, edit=True, endProgress=True)		
