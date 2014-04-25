@@ -1,0 +1,26 @@
+// written by Heribert Raab hraab@rainmaker.com
+// create locatar with custom attr for playblasting during playback or simulation
+
+$name = `spaceLocator -name "playblast1"`;
+
+addAttr -ln "On"  -at bool  $name ;
+
+addAttr -ln "camera"  -dt "string"  $name;
+setAttr -type "string" ($name[0] +".camera")  "persp";
+
+addAttr -ln "folder"  -dt "string"  $name;
+setAttr -type "string" ($name[0] +".folder")  "tmp/";
+
+addAttr -ln "blast"  -at double  $name;
+
+string $exp1 = "int $on =`getAttr \""+$name[0] +".On\"` ;";
+string $exp2 = "string $cam = `getAttr \""+$name[0] +".camera\"`;";
+string $exp3 = "string $folder = `getAttr \""+$name[0] +".folder\"`;";
+string $exp4 = ""; 
+string $exp5 = $name[0]+".blast=1;";
+string $exp6 = "if ($on ==1) { lookThru $cam;playblast -st `currentTime -q`-et `currentTime -q` -forceOverwrite -format image -fp 4 -compression \"jpg\" -f ($folder+$cam) -viewer 0 -offScreen -percent 100  -quality 70;}";
+
+string $expAll = $exp1+$exp2+$exp3+$exp4+$exp5+$exp6;
+
+expression -o $name -s $expAll ;
+
