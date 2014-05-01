@@ -1,9 +1,6 @@
 import maya.cmds as cmds
 import maya.mel as mel
 
-
-#particle instancer baking tool
-
 #ESC Tool
 gMainProgressBar = mel.eval('$tmp = $gMainProgressBar');
 cmds.progressBar( gMainProgressBar,
@@ -87,8 +84,20 @@ def bake(*args):
 				rotationPPAttr = cmds.textFieldGrp( 'rotation',query=True, text=True)
 				# get attr values
 				positionPP = cmds.nParticle(Psel[0],attribute='worldPosition',query=True,particleId=i)
-				sizePP = cmds.nParticle(Psel[0],attribute=sizePPAttr,query=True,particleId=i)
-				rotationPP = cmds.nParticle(Psel[0],attribute=rotationPPAttr,query=True,particleId=i)
+				
+				doscale = 1
+				try:
+					sizePP = cmds.nParticle(Psel[0],attribute=sizePPAttr,query=True,particleId=i)
+				except RuntimeError :
+					print "No size Attr found :" + str(i)	
+					doscale = 0
+					
+				dorotate = 1
+				try:		
+					rotationPP = cmds.nParticle(Psel[0],attribute=rotationPPAttr,query=True,particleId=i)
+				except RuntimeError :
+					print "No rotation Attr found :" + str(i)	
+					dorotate  = 0	
 				#get meshes
 				listmesh = cmds.listConnections(inst[0]+'.inputHierarchy')
 				checkAttr = cmds.objExists(Psel[0]+"."+meshIDAttr)
@@ -141,14 +150,25 @@ def bake(*args):
 				cmds.setKeyframe(instName, v=positionPP[1], at='translateY', time=curFrame)
 				cmds.setKeyframe(instName, v=positionPP[2], at='translateZ', time=curFrame)
 				
-				cmds.setKeyframe(instName, v=sizePP[0], at='scaleX', time=curFrame)
-				cmds.setKeyframe(instName, v=sizePP[1], at='scaleY', time=curFrame)
-				cmds.setKeyframe(instName, v=sizePP[2], at='scaleZ', time=curFrame)
+				if doscale == 1:
+					cmds.setKeyframe(instName, v=sizePP[0], at='scaleX', time=curFrame)
+					cmds.setKeyframe(instName, v=sizePP[1], at='scaleY', time=curFrame)
+					cmds.setKeyframe(instName, v=sizePP[2], at='scaleZ', time=curFrame)
+					
+				if dorotate == 1:
+					cmds.setKeyframe(instName, v=rotationPP[0], at='rotateX', t=curFrame)
+					cmds.setKeyframe(instName, v=rotationPP[1], at='rotateY', t=curFrame)
+					cmds.setKeyframe(instName, v=rotationPP[2], at='rotateZ', t=curFrame)
+				#sets visibility	
+				cmds.setKeyframe(instName, f=1, at='visibility', t=curFrame)
+				#sets visibility to zero before particle birth
+				firstkey = cmds.keyframe(instName+'.visibility',index=(0,0),query=True)
+				turnoff = firstkey[0]-1
+				cmds.setKeyframe(instName, f=0, at='visibility', t=turnoff)
+				cmds.keyframe(instName+'.visibility',edit=True,index=(0,0),timeChange=turnoff,valueChange=0)
 				
-				cmds.setKeyframe(instName, v=rotationPP[0], at='rotateX', t=curFrame)
-				cmds.setKeyframe(instName, v=rotationPP[1], at='rotateY', t=curFrame)
-				cmds.setKeyframe(instName, v=rotationPP[2], at='rotateZ', t=curFrame)
 				if cmds.progressBar(gMainProgressBar, query=True, isCancelled=True ) :
+					
 					break
 	#update progressBAR
 	cmds.progressBar(gMainProgressBar, edit=True, endProgress=True)
