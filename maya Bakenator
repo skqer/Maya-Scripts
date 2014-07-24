@@ -22,9 +22,11 @@ def bake(*args):
 	Psel = cmds.ls( selection=True )
 	
 	count = cmds.getAttr(Psel[0]+'.count')
+	print "particlecount:"
 	print count
 	
 	inst = cmds.listConnections( Psel[0]+'.instanceData', d=True, s=True )
+	print "instancer:"
 	print inst[0]
 	
 	baked = cmds.spaceLocator(name="instancerbake")
@@ -73,30 +75,33 @@ def bake(*args):
 			#----------------------------------------------------------------------------------------------------------
 			#bake current frame
 			#----------------------------------------------------------------------------------------------------------
-			for i in range(count):
+			realIDs = cmds.getAttr(Psel[0]+'.particleId')
+			for i in range(len(realIDs)):
 				#look for ESC
 				if cmds.progressBar(gMainProgressBar, query=True, isCancelled=True ) :
 					break
 			    
-			    #get particle Attr
+				#get particle Attr
 				meshIDAttr = cmds.textFieldGrp( 'meshid',query=True, text=True)
 				sizePPAttr = cmds.textFieldGrp( 'size',query=True, text=True)
 				rotationPPAttr = cmds.textFieldGrp( 'rotation',query=True, text=True)
-				# get attr values
-				positionPP = cmds.nParticle(Psel[0],attribute='worldPosition',query=True,particleId=i)
+				inn = int(i)
+				pid = int(realIDs[inn])
+				
+				positionPP = cmds.nParticle(Psel[0],attribute='worldPosition',query=True,particleId=pid)			
 				
 				doscale = 1
 				try:
-					sizePP = cmds.nParticle(Psel[0],attribute=sizePPAttr,query=True,particleId=i)
+					sizePP = cmds.nParticle(Psel[0],attribute=sizePPAttr,query=True,particleId=pid)
 				except RuntimeError :
-					print "No size Attr found :" + str(i)	
+					print "No size Attr found :" + str(pid)	
 					doscale = 0
 					
 				dorotate = 1
 				try:		
-					rotationPP = cmds.nParticle(Psel[0],attribute=rotationPPAttr,query=True,particleId=i)
+					rotationPP = cmds.nParticle(Psel[0],attribute=rotationPPAttr,query=True,particleId=pid)
 				except RuntimeError :
-					print "No rotation Attr found :" + str(i)	
+					print "No rotation Attr found :" + str(pid)	
 					dorotate  = 0	
 				#get meshes
 				listmesh = cmds.listConnections(inst[0]+'.inputHierarchy')
@@ -104,11 +109,13 @@ def bake(*args):
 				meshID = [0]
 				instName = ''
 				
+				
+				
 				# paricle ID and mupltiple meshes
 				#--------------------------------
 				if checkAttr == True:
 					try:
-						meshID = cmds.nParticle(Psel[0],attribute=meshIDAttr,query=True,particleId=i)
+						meshID = cmds.nParticle(Psel[0],attribute=meshIDAttr,query=True,particleId=pid)
 						meshID = [int(z) for z in meshID]
 					except RuntimeError:
 						print " Emty ID Attr"	
@@ -116,24 +123,26 @@ def bake(*args):
 						meshID = [0]
 				mesh = meshID[0]
 				try:
-					instName = listmesh[mesh]+"_"+str(i)
+					instName = listmesh[mesh]+"_"+str(pid)
 					checkGeo = cmds.objExists(instName)
 					#-----------------------------------------------------------------------
-					#duplictae
+					#duplicate
 					#-----------------------------------------------------------------------
 					if checkGeo== False:
-						instGeo = cmds.duplicate(listmesh[mesh],name=instName )
+						print "duplicate"
+						instGeo = cmds.duplicate(listmesh[mesh],name=instName,renameChildren=True )
 						cmds.setAttr(instGeo[0]+".visibility", 1)
 						cmds.parent( instGeo[0], baked  )
 					
 				except IndexError :
-					print "No Mesh for particleID found:" + str(i)	
+					print "No Mesh for particleID found:" + str(pid)	
 					print "using meshID 0 instead"
-					instName = listmesh[0]+"_"+str(i)
+					instName = listmesh[0]+"_"+str(pid)
 					checkGeo = cmds.objExists(instName)
 					#duplictae
 					if checkGeo== False:
-						instGeo = cmds.duplicate(listmesh[0],name=instName )
+						print "Duplicate 2:"
+						instGeo = cmds.duplicate(listmesh[0],name=instName,renameChildren=True )
 						cmds.setAttr(instGeo[0]+".visibility", 1)
 						cmds.parent( instGeo[0], baked  )						
 				#collect simple Geo
@@ -152,8 +161,13 @@ def bake(*args):
 				
 				if doscale == 1:
 					cmds.setKeyframe(instName, v=sizePP[0], at='scaleX', time=curFrame)
-					cmds.setKeyframe(instName, v=sizePP[1], at='scaleY', time=curFrame)
-					cmds.setKeyframe(instName, v=sizePP[2], at='scaleZ', time=curFrame)
+					try:
+						cmds.setKeyframe(instName, v=sizePP[1], at='scaleY', time=curFrame)
+						cmds.setKeyframe(instName, v=sizePP[2], at='scaleZ', time=curFrame)
+					except:
+						#a scalar value was used, not a vector
+						cmds.setKeyframe(instName, v=sizePP[0], at='scaleY', time=curFrame)
+						cmds.setKeyframe(instName, v=sizePP[0], at='scaleZ', time=curFrame)
 					
 				if dorotate == 1:
 					cmds.setKeyframe(instName, v=rotationPP[0], at='rotateX', t=curFrame)
