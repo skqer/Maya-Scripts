@@ -181,6 +181,8 @@ def bake(*args):
 				cmds.setKeyframe(instName, f=0, at='visibility', t=turnoff)
 				cmds.keyframe(instName+'.visibility',edit=True,index=(0,0),timeChange=turnoff,valueChange=0)
 				
+				cmds.clearCache( all=True )
+				cmds.flushUndo()
 				if cmds.progressBar(gMainProgressBar, query=True, isCancelled=True ) :
 					
 					break
