@@ -19,7 +19,7 @@ shapes = cmds.listRelatives(nparN, shapes=True)
 cmds.setAttr (shapes[0]+".lifespanMode", 2)
 cmds.setAttr (shapes[0]+".lifespan", 4)
 cmds.setAttr (shapes[0]+".lifespanRandom", 1)
-cmds.setAttr (shapes[0]+".dynamicsWeight", 0.9)
+cmds.setAttr (shapes[0]+".conserve, 0.9)
 cmds.setAttr (shapes[0]+".pointMass", 5)
 
 #setup radius
