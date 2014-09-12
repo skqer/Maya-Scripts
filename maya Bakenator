@@ -191,6 +191,8 @@ def bake(*args):
 	
 	for s in range(len(simpleGeo)):
 		cmds.simplify( simpleGeo[s] )	
+		cmds.clearCache( all=True )
+		cmds.flushUndo()
 		#update progressBAR
 		cmds.progressBar(gMainProgressBar, edit=True, step=1)
 
