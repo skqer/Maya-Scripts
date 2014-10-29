@@ -210,8 +210,6 @@ cmds.progressBar(gMainProgressBar, edit=True, endProgress=True)
 window = cmds.window('Bakenator3')
 cmds.columnLayout()
 
-cmds.image( image='/corp/projects/randc1/work/fx/scripts/baking.jpg' )
-
 gMainProgressBar = cmds.progressBar(maxValue=rangeF,isInterruptable=True,width=550)
 
 cmds.textFieldGrp( 'meshid',label='MeshID int Attr:', text="meshID",editable=True)
